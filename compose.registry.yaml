@@ -1,0 +1,8 @@
+# Для запуска скачанного образа вместо локальной сборки.
+# IMAGE_NAME и IMAGE_TAG задаются в shell или файле .env (не коммитить секреты).
+services:
+  web:
+    image: ${IMAGE_NAME:?Set IMAGE_NAME}:${IMAGE_TAG:-1.0.0}
+    ports:
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped

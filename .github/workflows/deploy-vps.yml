@@ -1,0 +1,39 @@
+name: Deploy released image to VPS (optional)
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Existing Docker Hub tag, for example v1.0.0'
+        required: true
+        default: 'v1.0.0'
+permissions:
+  contents: read
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Configure SSH identity and verified host key
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Pull and run released image on VPS
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          IMAGE_TAG: ${{ inputs.image_tag }}
+        run: |
+          case "$IMAGE_TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo 'Use release tag vN.N.N'; exit 1 ;;
+          esac
+          IMAGE="$DOCKER_USERNAME/studyshop-web:$IMAGE_TAG"
+          ssh -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" \
+            "set -e; docker pull '$IMAGE'; docker rm -f studyshop-web >/dev/null 2>&1 || true; docker run -d --name studyshop-web --restart unless-stopped -p 127.0.0.1:8080:8080 '$IMAGE'"
