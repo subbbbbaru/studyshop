@@ -5,7 +5,7 @@ on:
       image_tag:
         description: 'Existing Docker Hub tag, for example v1.0.0'
         required: true
-        default: 'v1.0.0'
+        default: 'v1.0.1'
 permissions:
   contents: read
 jobs:
